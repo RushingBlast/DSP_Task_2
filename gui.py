@@ -316,7 +316,7 @@ class Ui_MainWindow(object):
         self.label_phase.setText(_translate("MainWindow", "Phase"))
         self.label_comp_stats.setText(_translate("MainWindow", "Component Characteristics:"))
         self.label_2.setText(_translate("MainWindow", "Composed Signal Preview:"))
-        self.btn_compose.setText(_translate("MainWindow", "Compose"))
+        self.btn_compose.setText(_translate("MainWindow", "Save Composed Signal"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_composer), _translate("MainWindow", "Signal Composer"))
         self.actionAdd_Signal.setText(_translate("MainWindow", "Add Signal"))
 from pyqtgraph import PlotWidget

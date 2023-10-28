@@ -24,7 +24,7 @@
        <enum>QTabWidget::Rounded</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab_viewer">
        <attribute name="title">
@@ -534,7 +534,7 @@
                </size>
               </property>
               <property name="text">
-               <string>Compose</string>
+               <string>Save Composed Signal</string>
               </property>
              </widget>
             </item>
