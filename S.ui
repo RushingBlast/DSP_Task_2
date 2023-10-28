@@ -488,7 +488,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>Synthesized Signal Preview:</string>
+                 <string>Composed Signal Preview:</string>
                 </property>
                 <property name="indent">
                  <number>5</number>
@@ -520,7 +520,7 @@
              </layout>
             </item>
             <item row="1" column="0">
-             <widget class="QPushButton" name="pushButton">
+             <widget class="QPushButton" name="btn_compose">
               <property name="minimumSize">
                <size>
                 <width>200</width>
@@ -534,7 +534,7 @@
                </size>
               </property>
               <property name="text">
-               <string>Add Synthetic Signal</string>
+               <string>Compose</string>
               </property>
              </widget>
             </item>
