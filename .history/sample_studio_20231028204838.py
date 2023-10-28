@@ -191,7 +191,7 @@ class IllustratorApplication(QtWidgets.QMainWindow):
     def plotOnMain(self, Time, Amplitude, Name):
         self.Signal_test = Signal_Class(Time, Amplitude)
         self.gui.plot_widget_main_signal.clear()
-        self.gui.horizontalSlider_sample_freq.setMaximum(4 * self.Signal_test.Max_Freq)
+        self.gui.horizontalSlider_sample_freq.setMaximum(5 * self.Signal_test.Max_Freq)
         self.gui.plot_widget_main_signal.plot(Time, Amplitude, pen="r")
         self.gui.label_main_signal.setText("["+Name+" /Max.frq. : "+str(self.Signal_test.Max_Freq)+"Hz]")
         self.gui.plot_widget_main_signal.setXRange(0, max(self.Signal_test.TimeAxis), padding=0)
@@ -241,7 +241,7 @@ class Signal_Class(object):
         self.FreQList = []
         self.Freq = list(np.abs(fftfreq(len(self.TimeAxis), 1 / self.sample_rate)))
         self.Max_Freq = self.get_maxFreq()
-        print(self.Max_Freq) # TODO - Remove
+        print(self.Max_Freq)
         self.get_Interpolation(1)
 
     def get_Interpolation(self, freq):
@@ -258,7 +258,7 @@ class Signal_Class(object):
         num_points = len(Time_Values)  # sample points
         self.Time_Intrv = Time_Values
         for index in range(0, num_points):  # interpolation with sinc function
-            IllustratorApplication.interpolate_f += self.Samples[index] * np.sinc(
+            IllustratorApplication.interpolate_f += self.Samples[index] * np.sin(
                 (np.array(self.TimeAxis) - Ts * index) / Ts)
 
     def get_maxFreq(self):

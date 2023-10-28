@@ -191,7 +191,7 @@ class IllustratorApplication(QtWidgets.QMainWindow):
     def plotOnMain(self, Time, Amplitude, Name):
         self.Signal_test = Signal_Class(Time, Amplitude)
         self.gui.plot_widget_main_signal.clear()
-        self.gui.horizontalSlider_sample_freq.setMaximum(4 * self.Signal_test.Max_Freq)
+        self.gui.horizontalSlider_sample_freq.setMaximum(5 * self.Signal_test.Max_Freq)
         self.gui.plot_widget_main_signal.plot(Time, Amplitude, pen="r")
         self.gui.label_main_signal.setText("["+Name+" /Max.frq. : "+str(self.Signal_test.Max_Freq)+"Hz]")
         self.gui.plot_widget_main_signal.setXRange(0, max(self.Signal_test.TimeAxis), padding=0)

@@ -125,10 +125,10 @@ class IllustratorApplication(QtWidgets.QMainWindow):
         # add try except statement
         if self.sinusoidal != None:
             self.gui.listWidget.addItem(self.sinusoidal.name)
-            self.gui.plot_widget_composed.clear()
+            self.gui.plot_widget_synthesized.clear()
             storage.componentSin[self.sinusoidal.name] = self.sinusoidal
             self.sinusoidal.add_sig_to_result()
-            self.gui.plot_widget_composed.plot(Sinusoidals.resultant_sig[0], Sinusoidals.resultant_sig[1], pen='r',)
+            self.gui.plot_widget_synthesized.plot(Sinusoidals.resultant_sig[0], Sinusoidals.resultant_sig[1], pen='r',)
             self.sinusoidal = None
             self.clear_lineedit()
 
@@ -145,11 +145,11 @@ class IllustratorApplication(QtWidgets.QMainWindow):
             signal = storage.componentSin[signal_name]
             signal.subtract_sig_from_result()
             del storage.componentSin[signal_name]
-            self.gui.plot_widget_composed.clear()
+            self.gui.plot_widget_synthesized.clear()
             self.gui.plot_widget_component.clear()
 
             if len(storage.componentSin) != 0:
-                self.gui.plot_widget_composed.plot(Sinusoidals.resultant_sig[0],Sinusoidals.resultant_sig[1],pen='r')
+                self.gui.plot_widget_synthesized.plot(Sinusoidals.resultant_sig[0],Sinusoidals.resultant_sig[1],pen='r')
 
 
     def plot_resultant_sig_on_mainGraph(self):
@@ -158,11 +158,12 @@ class IllustratorApplication(QtWidgets.QMainWindow):
         IllustratorApplication.export_resultant_as_csv(IllustratorApplication.exported_signal_index)
         # storage.opened_signal["signal_data"] = Sinusoidals.resultant_sig[1]
         Sinusoidals.resultant_sig = [np.linspace(0, 2, 500, endpoint=False), [0] * 500]
-        self.gui.plot_widget_composed.clear()
+        self.gui.plot_widget_synthesized.clear()
         self.gui.listWidget.clear()
         storage.componentSin = {}                              
  
     def Renew_Intr(self, Freq):
+        # try:
         self.Signal_test.get_Interpolation(Freq)
         self.gui.label_sampling_frequency.setText(str(Freq))
         self.gui.plot_widget_main_signal.removeItem(self.Dotted_plot)
@@ -171,15 +172,12 @@ class IllustratorApplication(QtWidgets.QMainWindow):
         self.gui.plot_widget_restored_signal.plot(self.Signal_test.TimeAxis, IllustratorApplication.interpolate_f, pen="b")
         self.gui.label_constructed_signal.setText("[Sampling frq. :"+str(Freq)+"]")
 
-        # print(self.interpolate_f)
         # Calculate the difference and plot it
-        difference = np.subtract(self.Signal_test.amplitude, IllustratorApplication.interpolate_f)
-        # print(difference.size)
-        # print(len(self.Signal_test.Time_Intrv))
+        difference = np.array(self.Signal_test.Samples) - IllustratorApplication.interpolate_f
         self.gui.plot_widget_difference.clear()
-        self.gui.plot_widget_difference.plot(self.Signal_test.TimeAxis, difference, pen="g")
-        
-    
+        self.gui.plot_widget_difference.plot(self.Signal_test.Time_Intrv, difference, pen="g")
+        # except:
+        #     print("Coudln't interpolate")
 
     @classmethod
     def export_resultant_as_csv(cls, file_name="signal_data"):
@@ -191,11 +189,13 @@ class IllustratorApplication(QtWidgets.QMainWindow):
     def plotOnMain(self, Time, Amplitude, Name):
         self.Signal_test = Signal_Class(Time, Amplitude)
         self.gui.plot_widget_main_signal.clear()
-        self.gui.horizontalSlider_sample_freq.setMaximum(4 * self.Signal_test.Max_Freq)
+        self.gui.plot_widget_main_signal.clear()
+
+        self.gui.horizontalSlider_sample_freq.setMaximum(5 * self.Signal_test.Max_Freq)
         self.gui.plot_widget_main_signal.plot(Time, Amplitude, pen="r")
         self.gui.label_main_signal.setText("["+Name+" /Max.frq. : "+str(self.Signal_test.Max_Freq)+"Hz]")
         self.gui.plot_widget_main_signal.setXRange(0, max(self.Signal_test.TimeAxis), padding=0)
-        # print (self.Signal_test.amplitude.size())
+
         self.gui.plot_widget_restored_signal.setXRange(0, max(self.Signal_test.TimeAxis), padding=0)
 
     @classmethod
@@ -241,7 +241,7 @@ class Signal_Class(object):
         self.FreQList = []
         self.Freq = list(np.abs(fftfreq(len(self.TimeAxis), 1 / self.sample_rate)))
         self.Max_Freq = self.get_maxFreq()
-        print(self.Max_Freq) # TODO - Remove
+        print(self.Max_Freq)
         self.get_Interpolation(1)
 
     def get_Interpolation(self, freq):

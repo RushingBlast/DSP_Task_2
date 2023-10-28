@@ -258,7 +258,7 @@ class Signal_Class(object):
         num_points = len(Time_Values)  # sample points
         self.Time_Intrv = Time_Values
         for index in range(0, num_points):  # interpolation with sinc function
-            IllustratorApplication.interpolate_f += self.Samples[index] * np.sinc(
+            IllustratorApplication.interpolate_f += self.Samples[index] * np.sin(
                 (np.array(self.TimeAxis) - Ts * index) / Ts)
 
     def get_maxFreq(self):
