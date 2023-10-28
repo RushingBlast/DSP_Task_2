@@ -141,7 +141,7 @@ class IllustratorApplication(QtWidgets.QMainWindow):
     def delete_sigComponent_from_resultantGraph(self):
         signal_name = self.gui.listWidget.currentItem().text()
         if signal_name != "":
-            self.gui.listWidget.takeItem(self.gui.listWidget.currentRow())
+            self.gui.listWidget.takeItem(self.gui.listWidget.currentIndex())
             signal = storage.componentSin[signal_name]
             signal.subtract_sig_from_result()
             del storage.componentSin[signal_name]

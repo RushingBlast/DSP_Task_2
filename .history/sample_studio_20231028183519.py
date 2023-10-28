@@ -38,26 +38,12 @@ class IllustratorApplication(QtWidgets.QMainWindow):
         # Buttons
         self.gui.btn_open_signal.clicked.connect(self.open_sig_file)
         self.gui.btn_add_component.clicked.connect(self.add_sig_to_resultantGraph)
-        # self.gui.listWidget.activated.connect(self.plot_sigComponent)
-        self.gui.listWidget.currentItemChanged.connect(self.plot_sigComponent)
+        self.gui.listWidget.activated.connect(self.plot_sigComponent)
         self.gui.btn_remove_component.clicked.connect(self.delete_sigComponent_from_resultantGraph)
         self.gui.btn_compose.clicked.connect(self.plot_resultant_sig_on_mainGraph)
-        self.gui.tabWidget.currentChanged.connect(self.set_focus_on_tab_change)
-        
-        # Composer Fields
-        self.gui.lineEdit_amplitude.textEdited.connect(self.plot_sig_on_plot_widget_component)
-        self.gui.lineEdit_frequency.textEdited.connect(self.plot_sig_on_plot_widget_component)
-        self.gui.lineEdit_phase.textEdited.connect(self.plot_sig_on_plot_widget_component)
         
         # Slider:
         self.gui.horizontalSlider_sample_freq.valueChanged.connect(lambda: self.Renew_Intr(self.gui.horizontalSlider_sample_freq.value()))
-
-
-    def set_focus_on_tab_change(self):
-        if self.gui.tabWidget.currentIndex() == 1:
-            self.gui.lineEdit_name.setFocus()
-        else:
-            self.gui.btn_open_signal.setFocus()
 
     def open_sig_file(self):
         try:
@@ -95,14 +81,14 @@ class IllustratorApplication(QtWidgets.QMainWindow):
 
 
     def clear_lineedit(self):
-        self.gui.lineEdit_name.clear()
+        self.gui.Name_lineEdit.clear()
         self.gui.lineEdit_frequency.clear()
         self.gui.lineEdit_amplitude.clear()
         self.gui.lineEdit_phase.clear()
     
     def add_sig_to_resultantGraph(self):
         self.gui.plot_widget_component.clear()
-        name = self.gui.lineEdit_name.text()
+        name = self.gui.Name_lineEdit.text()
         freq = self.gui.lineEdit_frequency.text()
         amp = self.gui.lineEdit_amplitude.text()
         phase = self.gui.lineEdit_phase.text()
@@ -117,8 +103,7 @@ class IllustratorApplication(QtWidgets.QMainWindow):
         amp = IllustratorApplication.return_zero_at_emptyString(amp)
         phase = IllustratorApplication.return_zero_at_emptyString(phase)
         self.sinusoidal = Sinusoidals(name, float(freq), float(amp), float(phase))
-        self.gui.lineEdit_name.setFocus()
-        
+        self.gui.plot_widget_component.plot(self.sinusoidal.time, self.sinusoidal.y_axis_value, pen='r')
 
 
 
@@ -135,13 +120,13 @@ class IllustratorApplication(QtWidgets.QMainWindow):
  
     def plot_sigComponent(self):
         self.gui.plot_widget_component.clear()
-        signal_component = storage.componentSin[self.gui.listWidget.currentItem().text()]
+        signal_component = storage.componentSin[self.gui.listWidget.currentText()]
         self.gui.plot_widget_component.plot(signal_component.time, signal_component.y_axis_value, pen='r', )
 
     def delete_sigComponent_from_resultantGraph(self):
-        signal_name = self.gui.listWidget.currentItem().text()
+        signal_name = self.gui.listWidget.currentText()
         if signal_name != "":
-            self.gui.listWidget.takeItem(self.gui.listWidget.currentRow())
+            self.gui.listWidget.removeItem(self.gui.listWidget.currentIndex())
             signal = storage.componentSin[signal_name]
             signal.subtract_sig_from_result()
             del storage.componentSin[signal_name]
@@ -150,7 +135,6 @@ class IllustratorApplication(QtWidgets.QMainWindow):
 
             if len(storage.componentSin) != 0:
                 self.gui.plot_widget_synthesized.plot(Sinusoidals.resultant_sig[0],Sinusoidals.resultant_sig[1],pen='r')
-
 
     def plot_resultant_sig_on_mainGraph(self):
         self.plotOnMain(Sinusoidals.resultant_sig[0], Sinusoidals.resultant_sig[1],

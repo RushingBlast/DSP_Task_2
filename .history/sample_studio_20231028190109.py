@@ -42,7 +42,6 @@ class IllustratorApplication(QtWidgets.QMainWindow):
         self.gui.listWidget.currentItemChanged.connect(self.plot_sigComponent)
         self.gui.btn_remove_component.clicked.connect(self.delete_sigComponent_from_resultantGraph)
         self.gui.btn_compose.clicked.connect(self.plot_resultant_sig_on_mainGraph)
-        self.gui.tabWidget.currentChanged.connect(self.set_focus_on_tab_change)
         
         # Composer Fields
         self.gui.lineEdit_amplitude.textEdited.connect(self.plot_sig_on_plot_widget_component)
@@ -51,13 +50,6 @@ class IllustratorApplication(QtWidgets.QMainWindow):
         
         # Slider:
         self.gui.horizontalSlider_sample_freq.valueChanged.connect(lambda: self.Renew_Intr(self.gui.horizontalSlider_sample_freq.value()))
-
-
-    def set_focus_on_tab_change(self):
-        if self.gui.tabWidget.currentIndex() == 1:
-            self.gui.lineEdit_name.setFocus()
-        else:
-            self.gui.btn_open_signal.setFocus()
 
     def open_sig_file(self):
         try:
@@ -141,7 +133,7 @@ class IllustratorApplication(QtWidgets.QMainWindow):
     def delete_sigComponent_from_resultantGraph(self):
         signal_name = self.gui.listWidget.currentItem().text()
         if signal_name != "":
-            self.gui.listWidget.takeItem(self.gui.listWidget.currentRow())
+            # self.gui.listWidget.takeItem(self.gui.listWidget.currentIndex())
             signal = storage.componentSin[signal_name]
             signal.subtract_sig_from_result()
             del storage.componentSin[signal_name]
@@ -150,7 +142,6 @@ class IllustratorApplication(QtWidgets.QMainWindow):
 
             if len(storage.componentSin) != 0:
                 self.gui.plot_widget_synthesized.plot(Sinusoidals.resultant_sig[0],Sinusoidals.resultant_sig[1],pen='r')
-
 
     def plot_resultant_sig_on_mainGraph(self):
         self.plotOnMain(Sinusoidals.resultant_sig[0], Sinusoidals.resultant_sig[1],

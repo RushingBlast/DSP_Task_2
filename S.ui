@@ -389,6 +389,20 @@
             <property name="sizeConstraint">
              <enum>QLayout::SetMinimumSize</enum>
             </property>
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_comp_stats">
+              <property name="text">
+               <string>Component Characteristics:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QLabel" name="label_component_list">
+              <property name="text">
+               <string>Component List:</string>
+              </property>
+             </widget>
+            </item>
             <item row="2" column="1">
              <widget class="QPushButton" name="btn_remove_component">
               <property name="text">
@@ -406,13 +420,6 @@
             <item row="1" column="1">
              <widget class="QListWidget" name="listWidget"/>
             </item>
-            <item row="0" column="1">
-             <widget class="QLabel" name="label_component_list">
-              <property name="text">
-               <string>Component List:</string>
-              </property>
-             </widget>
-            </item>
             <item row="1" column="0">
              <layout class="QFormLayout" name="formLayout_3">
               <property name="formAlignment">
@@ -426,7 +433,7 @@
                </widget>
               </item>
               <item row="0" column="1">
-               <widget class="QLineEdit" name="lineEdit_phase_3"/>
+               <widget class="QLineEdit" name="lineEdit_name"/>
               </item>
               <item row="1" column="0">
                <widget class="QLabel" name="label_amp">
@@ -441,7 +448,7 @@
               <item row="2" column="0">
                <widget class="QLabel" name="label_freq">
                 <property name="text">
-                 <string>Frequency</string>
+                 <string>Frequency(Hz)</string>
                 </property>
                </widget>
               </item>
@@ -451,7 +458,7 @@
               <item row="3" column="0">
                <widget class="QLabel" name="label_phase">
                 <property name="text">
-                 <string>Phase</string>
+                 <string>Phase°</string>
                 </property>
                </widget>
               </item>
@@ -459,13 +466,6 @@
                <widget class="QLineEdit" name="lineEdit_phase"/>
               </item>
              </layout>
-            </item>
-            <item row="0" column="0">
-             <widget class="QLabel" name="label_comp_stats">
-              <property name="text">
-               <string>Component Characteristics:</string>
-              </property>
-             </widget>
             </item>
            </layout>
           </widget>
@@ -563,6 +563,20 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>lineEdit_name</tabstop>
+  <tabstop>lineEdit_amplitude</tabstop>
+  <tabstop>lineEdit_frequency</tabstop>
+  <tabstop>lineEdit_phase</tabstop>
+  <tabstop>btn_add_component</tabstop>
+  <tabstop>listWidget</tabstop>
+  <tabstop>btn_remove_component</tabstop>
+  <tabstop>btn_compose</tabstop>
+  <tabstop>tabWidget</tabstop>
+  <tabstop>dial_SNR</tabstop>
+  <tabstop>btn_open_signal</tabstop>
+  <tabstop>horizontalSlider_sample_freq</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

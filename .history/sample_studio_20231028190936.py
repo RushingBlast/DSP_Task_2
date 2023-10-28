@@ -141,7 +141,7 @@ class IllustratorApplication(QtWidgets.QMainWindow):
     def delete_sigComponent_from_resultantGraph(self):
         signal_name = self.gui.listWidget.currentItem().text()
         if signal_name != "":
-            self.gui.listWidget.takeItem(self.gui.listWidget.currentRow())
+            # self.gui.listWidget.takeItem(self.gui.listWidget.currentIndex())
             signal = storage.componentSin[signal_name]
             signal.subtract_sig_from_result()
             del storage.componentSin[signal_name]
@@ -150,7 +150,6 @@ class IllustratorApplication(QtWidgets.QMainWindow):
 
             if len(storage.componentSin) != 0:
                 self.gui.plot_widget_synthesized.plot(Sinusoidals.resultant_sig[0],Sinusoidals.resultant_sig[1],pen='r')
-
 
     def plot_resultant_sig_on_mainGraph(self):
         self.plotOnMain(Sinusoidals.resultant_sig[0], Sinusoidals.resultant_sig[1],
