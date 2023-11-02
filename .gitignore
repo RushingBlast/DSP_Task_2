@@ -1,4 +1,4 @@
-/.history/
-/"__pycache__"/
-/.gitignore.txt
-/.gitattributes
+.history/
+__pycache__/
+.gitignore
+.gitattributes
