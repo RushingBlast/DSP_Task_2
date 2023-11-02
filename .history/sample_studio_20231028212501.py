@@ -10,6 +10,7 @@ import pandas as pd
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication, QFileDialog
 import numpy as np
+from scipy.interpolate import CubicSpline
 from scipy.fftpack import fft, fftfreq
 
 
@@ -20,24 +21,6 @@ class IllustratorGUI(Ui_MainWindow):
 
 
 class IllustratorApplication(QtWidgets.QMainWindow):
-    """
-    The core part of the application.
-    functions:
-        Viewer:
-            open_sig_file: Reads a csv file and plots it on main graph using plotOnMain
-            plotOnMain:
-            plot_resultant_sig_on_mainGraph
-            add_sig_to_resultantGraph
-        Composer:
-            plot_sigComponent
-            delete_sigComponent_from_resultantGraph
-            set_focus_on_tab_change
-            plot_sig_on_plot_widget_component
-    
-    """
-        
-    
-    
     exported_signal_index = "resultant_signal_from_composer"
     interpolate_f = 0
     def __init__(self):
@@ -56,6 +39,7 @@ class IllustratorApplication(QtWidgets.QMainWindow):
         # Buttons
         self.gui.btn_open_signal.clicked.connect(self.open_sig_file)
         self.gui.btn_add_component.clicked.connect(self.add_sig_to_resultantGraph)
+        # self.gui.listWidget.activated.connect(self.plot_sigComponent)
         self.gui.listWidget.currentItemChanged.connect(self.plot_sigComponent)
         self.gui.btn_remove_component.clicked.connect(self.delete_sigComponent_from_resultantGraph)
         self.gui.btn_compose.clicked.connect(self.plot_resultant_sig_on_mainGraph)
