@@ -11,7 +11,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication, QFileDialog
 import numpy as np
 from scipy.fftpack import fft, fftfreq
-
+import pyqtgraph as pg
 
 class IllustratorGUI(Ui_MainWindow):
     def setupUi(self, MainWindow):
@@ -20,24 +20,6 @@ class IllustratorGUI(Ui_MainWindow):
 
 
 class IllustratorApplication(QtWidgets.QMainWindow):
-    """
-    The core part of the application.
-    functions:
-        Viewer:
-            open_sig_file: Reads a csv file and plots it on main graph using plotOnMain
-            plotOnMain:
-            plot_resultant_sig_on_mainGraph
-            add_sig_to_resultantGraph
-        Composer:
-            plot_sigComponent
-            delete_sigComponent_from_resultantGraph
-            set_focus_on_tab_change
-            plot_sig_on_plot_widget_component
-    
-    """
-        
-    
-    
     exported_signal_index = "resultant_signal_from_composer"
     interpolate_f = 0
     def __init__(self):
@@ -49,13 +31,21 @@ class IllustratorApplication(QtWidgets.QMainWindow):
         self.Dotted_plot = None
         self.index1=0
         self.index2=0
+        self.data = None
+        self.time = None
+        self.gui.dial_SNR.setMinimum(0)
+        self.gui.dial_SNR.setMaximum(50)
+        self.gui.dial_SNR.setValue(50)
+        self.componentSin = {}
 
-        self.Connect_Buttons()
-
-    def Connect_Buttons(self):
-        # Buttons
+# Connections
+        self.gui.dial_SNR.valueChanged.connect(self.sliderMoved)
+        self.gui.dial_SNR.valueChanged.connect(self.noise_addition)
+        
         self.gui.btn_open_signal.clicked.connect(self.open_sig_file)
+
         self.gui.btn_add_component.clicked.connect(self.add_sig_to_resultantGraph)
+        # self.gui.listWidget.activated.connect(self.plot_sigComponent)
         self.gui.listWidget.currentItemChanged.connect(self.plot_sigComponent)
         self.gui.btn_remove_component.clicked.connect(self.delete_sigComponent_from_resultantGraph)
         self.gui.btn_compose.clicked.connect(self.plot_resultant_sig_on_mainGraph)
@@ -69,6 +59,9 @@ class IllustratorApplication(QtWidgets.QMainWindow):
         # Slider:
         self.gui.horizontalSlider_sample_freq.valueChanged.connect(lambda: self.Renew_Intr(self.gui.horizontalSlider_sample_freq.value()))
 
+    def sliderMoved(self):
+        print("Dial value = %i" % (self.gui.dial_SNR.value()))
+    
 
     def set_focus_on_tab_change(self):
         if self.gui.tabWidget.currentIndex() == 1:
@@ -86,6 +79,9 @@ class IllustratorApplication(QtWidgets.QMainWindow):
             time = list(data[1:, 0])
             y_axis = list(data[1:, 1])
             self.plotOnMain(time[0:1000], y_axis[0:1000], Signal_Name)
+            self.data = y_axis
+            self.time = time
+
         except:
             pass
 
@@ -95,7 +91,7 @@ class IllustratorApplication(QtWidgets.QMainWindow):
         freq = self.gui.lineEdit_frequency.text()
         amp = self.gui.lineEdit_amplitude.text()
         phase = self.gui.lineEdit_phase.text()
-        if name in storage.componentSin.keys():
+        if name in self.componentSin.keys():
             name+=str(self.index1)
             self.index1+=1
         elif name == "":
@@ -109,8 +105,21 @@ class IllustratorApplication(QtWidgets.QMainWindow):
         self.gui.plot_widget_component.plot(self.sinusoidal.time, self.sinusoidal.y_axis_value, pen='r')
 
 
-
-
+    def noise_addition(self):
+        self.gui.plot_widget_main_signal.clear()
+        def power(my_list):
+            return [ x**2 for x in my_list ]
+        powerr = power(self.data)
+        snr_db = self.gui.dial_SNR.value()
+        signal_average_power = np.mean(powerr)
+        signal_average_power_db = 10 * np.log10(signal_average_power)
+        noise_db = signal_average_power_db - snr_db
+        noise_watts = 10 ** (noise_db / 10)
+        noise = np.random.normal(0, np.sqrt(noise_watts), len(self.data))  
+        noise_signal = self.data + noise
+        self.gui.plot_widget_main_signal.plot(self.time ,noise_signal, pen="r")
+        print('done')         
+        
     def clear_lineedit(self):
         self.gui.lineEdit_name.clear()
         self.gui.lineEdit_frequency.clear()
@@ -123,7 +132,7 @@ class IllustratorApplication(QtWidgets.QMainWindow):
         freq = self.gui.lineEdit_frequency.text()
         amp = self.gui.lineEdit_amplitude.text()
         phase = self.gui.lineEdit_phase.text()
-        if name in storage.componentSin.keys():
+        if name in self.componentSin.keys():
             name+=str(self.index1)
             self.index1+=1
         elif name == "":
@@ -143,7 +152,7 @@ class IllustratorApplication(QtWidgets.QMainWindow):
         if self.sinusoidal != None:
             self.gui.listWidget.addItem(self.sinusoidal.name)
             self.gui.plot_widget_composed.clear()
-            storage.componentSin[self.sinusoidal.name] = self.sinusoidal
+            self.componentSin[self.sinusoidal.name] = self.sinusoidal
             self.sinusoidal.add_sig_to_result()
             self.gui.plot_widget_composed.plot(Sinusoidals.resultant_sig[0], Sinusoidals.resultant_sig[1], pen='r',)
             self.sinusoidal = None
@@ -152,20 +161,20 @@ class IllustratorApplication(QtWidgets.QMainWindow):
  
     def plot_sigComponent(self):
         self.gui.plot_widget_component.clear()
-        signal_component = storage.componentSin[self.gui.listWidget.currentItem().text()]
+        signal_component = self.componentSin[self.gui.listWidget.currentItem().text()]
         self.gui.plot_widget_component.plot(signal_component.time, signal_component.y_axis_value, pen='r', )
 
     def delete_sigComponent_from_resultantGraph(self):
         signal_name = self.gui.listWidget.currentItem().text()
         if signal_name != "":
             self.gui.listWidget.takeItem(self.gui.listWidget.currentRow())
-            signal = storage.componentSin[signal_name]
+            signal = self.componentSin[signal_name]
             signal.subtract_sig_from_result()
-            del storage.componentSin[signal_name]
+            del self.componentSin[signal_name]
             self.gui.plot_widget_composed.clear()
             self.gui.plot_widget_component.clear()
 
-            if len(storage.componentSin) != 0:
+            if len(self.componentSin) != 0:
                 self.gui.plot_widget_composed.plot(Sinusoidals.resultant_sig[0],Sinusoidals.resultant_sig[1],pen='r')
 
 
@@ -174,10 +183,10 @@ class IllustratorApplication(QtWidgets.QMainWindow):
                         "Resultant Signal from Composer")
         IllustratorApplication.export_resultant_as_csv(IllustratorApplication.exported_signal_index)
         # storage.opened_signal["signal_data"] = Sinusoidals.resultant_sig[1]
-        Sinusoidals.resultant_sig = [np.linspace(0, 2, 500, endpoint=False), [0] * 500]
+        Sinusoidals.resultant_sig = [np.linspace(0, 2, 1000, endpoint=False), [0] * 1000]
         self.gui.plot_widget_composed.clear()
         self.gui.listWidget.clear()
-        storage.componentSin = {}                              
+        self.componentSin = {}                              
  
     def Renew_Intr(self, Freq):
         self.Signal_test.get_Interpolation(Freq)
@@ -236,15 +245,16 @@ class Sinusoidals():
 
     def add_sig_to_result(self):
         for point in range(1000):
-            Sinusoidals.resultant_sig[1][point] += self.y_axis_value[point]
+            self.resultant_sig[1][point] += self.y_axis_value[point]
+            
 
     def subtract_sig_from_result(self):
         for point in range(1000):
-            Sinusoidals.resultant_sig[1][point] -= self.y_axis_value[point]
+            self.resultant_sig[1][point] -= self.y_axis_value[point]
 
 
-class storage():
-    componentSin = {}
+# class storage():
+#     componentSin = {}
 
 
 class Signal_Class(object):
@@ -265,7 +275,8 @@ class Signal_Class(object):
         Ts = 1 / freq
         Time_Values = []
         self.Samples = []
-        Step_in_index = int(np.ceil(len(self.TimeAxis)) / (max(self.TimeAxis) * freq))
+        # Step_in_index = int(np.ceil(len(self.TimeAxis)) / (max(self.TimeAxis) * freq))
+        Step_in_index = int(len(self.TimeAxis) / (max(self.TimeAxis) * freq))
         for index in range(0, len(self.TimeAxis), Step_in_index):
             self.Samples.append(self.amplitude[index])
             Time_Values.append(self.TimeAxis[index])
