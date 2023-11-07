@@ -25,28 +25,33 @@ class Signal_Composer(QtWidgets.QMainWindow):
         super(Signal_Composer, self).__init__()
         self.gui = SignalGUI()
         self.gui.setupUi(self)
-        
+                self.data = None
+        self.time = None
+
+        self.gui.dial_SNR.setMinimum(0)
+        self.gui.dial_SNR.setMaximum(50)
+        self.gui.dial_SNR.setValue(50)
 
 # Connections
-        self.gui.dial_SNR.valueChanged.connect(self.sliderMoved)
-        self.gui.dial_SNR.valueChanged.connect(self.noise_addition)
+        # self.gui.dial_SNR.valueChanged.connect(self.sliderMoved)
+        self.gui.dial_SNR.valueChanged.connect(self.Add_Noise)
         
-        self.gui.btn_open_signal.clicked.connect(self.open_sig_file)
+        self.gui.btn_open_signal.clicked.connect(self.Open_CSV_File)
 
-        self.gui.btn_add_component.clicked.connect(self.add_sig_to_resultantGraph)
+        # self.gui.btn_add_component.clicked.connect(self.add_sig_to_resultantGraph)
 
-        self.gui.listWidget.currentItemChanged.connect(self.plot_sigComponent)
-        self.gui.btn_remove_component.clicked.connect(self.delete_sigComponent_from_resultantGraph)
-        self.gui.btn_compose.clicked.connect(self.plot_resultant_sig_on_mainGraph)
-        self.gui.tabWidget.currentChanged.connect(self.set_focus_on_tab_change)
+        # self.gui.listWidget.currentItemChanged.connect(self.plot_sigComponent)
+        # self.gui.btn_remove_component.clicked.connect(self.delete_sigComponent_from_resultantGraph)
+        # self.gui.btn_compose.clicked.connect(self.plot_resultant_sig_on_mainGraph)
+        # self.gui.tabWidget.currentChanged.connect(self.set_focus_on_tab_change)
         
-        # Composer Fields
-        self.gui.lineEdit_amplitude.textEdited.connect(self.plot_sig_on_plot_widget_component)
-        self.gui.lineEdit_frequency.textEdited.connect(self.plot_sig_on_plot_widget_component)
-        self.gui.lineEdit_phase.textEdited.connect(self.plot_sig_on_plot_widget_component)
+        # # Composer Fields
+        # self.gui.lineEdit_amplitude.textEdited.connect(self.plot_sig_on_plot_widget_component)
+        # self.gui.lineEdit_frequency.textEdited.connect(self.plot_sig_on_plot_widget_component)
+        # self.gui.lineEdit_phase.textEdited.connect(self.plot_sig_on_plot_widget_component)
         
-        # Slider:
-        self.gui.horizontalSlider_sample_freq.valueChanged.connect(lambda: self.Renew_Intr(self.gui.horizontalSlider_sample_freq.value()))
+        # # Slider:
+        # self.gui.horizontalSlider_sample_freq.valueChanged.connect(lambda: self.Renew_Intr(self.gui.horizontalSlider_sample_freq.value()))
 
     def Slide_Changed(self):
         pass
@@ -63,16 +68,46 @@ class Signal_Composer(QtWidgets.QMainWindow):
         data = np.genfromtxt(path, delimiter=',')
         time = list(data[1:, 0])
         y_axis = list(data[1:, 1])
-        self.plotOnMain(time[0:1000], y_axis[0:1000], Signal_Name)
         self.data = y_axis
         self.time = time
-        pass
+        self.plotOnMain(time[0:1000], y_axis[0:1000], Signal_Name)
 
     def Plot_Signal(self):
         pass
 
     def Add_Noise(self):
-        pass
+        self.gui.plot_widget_main_signal.clear()    
+        
+        # Define a function to calculate the power of a list of values
+        def power(my_list):
+            return [x**2 for x in my_list]
+
+        # Calculate the power of the original signal
+        powerr = power(self.data)
+        
+        # Get the Signal-to-Noise Ratio (SNR) in decibels from the GUI dial
+        snr_db = self.gui.dial_SNR.value()
+        
+        # Calculate the average power of the signal
+        signal_average_power = np.mean(powerr)
+        
+        # Convert the average signal power to decibels
+        signal_average_power_db = 10 * np.log10(signal_average_power)
+        
+        # Calculate the noise power in decibels
+        noise_db = signal_average_power_db - snr_db
+        
+        # Convert the noise power from decibels to watts
+        noise_watts = 10 ** (noise_db / 10)
+        
+        # Generate random noise samples with a mean of 0 and standard deviation based on noise power
+        noise = np.random.normal(0, np.sqrt(noise_watts), len(self.data))
+        
+        # Add the generated noise to the original signal
+        noise_signal = self.data + noise
+        
+        # Plot the noisy signal on the main signal plot_widget in red
+        self.gui.plot_widget_main_signal.plot(self.time, noise_signal, pen="r")
         
     def Clear_Sig_Information(self):
         pass
@@ -106,7 +141,8 @@ class Signal_Composer(QtWidgets.QMainWindow):
         pass
 
     def plotOnMain(self, Time, Amplitude, Name):
-        pass
+        self.gui.plot_widget_main_signal.clear()        
+        self.gui.plot_widget_main_signal.plot(Time, Amplitude, pen="r")
 
 
 import sys
