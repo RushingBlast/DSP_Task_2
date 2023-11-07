@@ -13,10 +13,49 @@ import numpy as np
 from scipy.fftpack import fft, fftfreq
 import pyqtgraph as pg
 
+
+#TODO - implement the component dict into sig_comp creation
+#TODO - Tweak things in such a way that makes Plot_Sig_Component only plot a signal, no creation
+#TODO - Add Sig_comp plotting dynamically as user is filling the fields
+#TODO - restore functionality to btn_add_component
+#TODO - did I mention implementing the component dict into the functions?
+#TODO - restore fucntionality to the list widget
+#TODO - restore functionality to btn_remove_component
+    
+
+
+
 class SignalGUI(Ui_MainWindow):
     def setupUi(self, MainWindow):
         Ui_MainWindow.setupUi(self, MainWindow)
         self.tabWidget.setCurrentIndex(0)
+        
+        
+class class_sinusoidal():
+    
+    # Initialize the sinusoidal with a list of 1000 time values and 1000 zeroes
+    resultant_sig = [np.linspace(0, 2, 1000, endpoint=False), [0] * 1000]
+    
+    def __init__(self, name="", frequency = 1.0, amplitude = 1.0, phase = 0.0):
+        
+        self.name = name
+        self.frequency = frequency
+        self.amplitude = amplitude
+        self.phase = phase
+        
+        self.time_values = np.linspace(0, 2, 1000, endpoint= False)
+        
+        # Creates a sin function with Sin(2 * pi * F * T + phase) and multiply it with the amplitude
+        self.y_axis_values = amplitude * np.sin(2 * math.pi * frequency * self.time_values + phase)
+    
+    def add_sig_to_result(self, sig_to_add):
+        for point in sig_to_add:
+            self.resultant_sig[1][point] += sig_to_add[1][point]
+        
+    
+    def subtract_sig_from_result(self, sig_to_subtract):
+        for point in sig_to_subtract:
+            self.resultant_sig[1][point] -= sig_to_subtract[1][point]
 
 
 class Signal_Composer(QtWidgets.QMainWindow):
@@ -25,20 +64,24 @@ class Signal_Composer(QtWidgets.QMainWindow):
         super(Signal_Composer, self).__init__()
         self.gui = SignalGUI()
         self.gui.setupUi(self)
-                self.data = None
+        self.data = None
         self.time = None
-
+        
+        self.composer_comps = {} # Dict to hold the components of the composed signal
+        
         self.gui.dial_SNR.setMinimum(0)
         self.gui.dial_SNR.setMaximum(50)
         self.gui.dial_SNR.setValue(50)
-
+        self.gui.lbl_snr_level.setText(f"SNR Level: (50dB)")
+        
+        
 # Connections
         # self.gui.dial_SNR.valueChanged.connect(self.sliderMoved)
         self.gui.dial_SNR.valueChanged.connect(self.Add_Noise)
         
         self.gui.btn_open_signal.clicked.connect(self.Open_CSV_File)
 
-        # self.gui.btn_add_component.clicked.connect(self.add_sig_to_resultantGraph)
+        self.gui.btn_add_component.clicked.connect(self.Plot_Sig_Component)
 
         # self.gui.listWidget.currentItemChanged.connect(self.plot_sigComponent)
         # self.gui.btn_remove_component.clicked.connect(self.delete_sigComponent_from_resultantGraph)
@@ -53,7 +96,7 @@ class Signal_Composer(QtWidgets.QMainWindow):
         # # Slider:
         # self.gui.horizontalSlider_sample_freq.valueChanged.connect(lambda: self.Renew_Intr(self.gui.horizontalSlider_sample_freq.value()))
 
-    def Slide_Changed(self):
+    def Slider_Changed(self):
         pass
     
 
@@ -76,20 +119,25 @@ class Signal_Composer(QtWidgets.QMainWindow):
         pass
 
     def Add_Noise(self):
+        
         self.gui.plot_widget_main_signal.clear()    
+        
+        # Get the Signal-to-Noise Ratio (SNR) in decibels from the GUI dial
+        snr_db = self.gui.dial_SNR.value()
+        
+        # Set label text to SNR dB value
+        self.gui.lbl_snr_level.setText(f"SNR Level: ({snr_db}dB)")
         
         # Define a function to calculate the power of a list of values
         def power(my_list):
             return [x**2 for x in my_list]
 
         # Calculate the power of the original signal
-        powerr = power(self.data)
+        power_orig_signal = power(self.data)
         
-        # Get the Signal-to-Noise Ratio (SNR) in decibels from the GUI dial
-        snr_db = self.gui.dial_SNR.value()
         
         # Calculate the average power of the signal
-        signal_average_power = np.mean(powerr)
+        signal_average_power = np.mean(power_orig_signal)
         
         # Convert the average signal power to decibels
         signal_average_power_db = 10 * np.log10(signal_average_power)
@@ -115,9 +163,26 @@ class Signal_Composer(QtWidgets.QMainWindow):
     def Plot_Result_Signal(self):
         pass
 
-
- 
+    
+    # Returns a class_sinusoidal object with the field inputs 
+    def Create_Sig_From_Fields(self):
+        
+        name = self.Return_Zero_At_Empty_String(self.gui.field_name.text())
+        freq = self.Return_Zero_At_Empty_String(self.gui.field_frequency.text())
+        amp = self.Return_Zero_At_Empty_String(self.gui.field_amplitude.text())
+        phase = self.Return_Zero_At_Empty_String(self.gui.field_phase.text())
+                
+        new_sig = class_sinusoidal(name, float(freq), float(amp), float(phase))
+        return new_sig
+        
+    # Plots a signal ocmponent on plot_widget_component
     def Plot_Sig_Component(self):
+        self.gui.plot_widget_component.clear()
+        
+        sig_component = self.Create_Sig_From_Fields()
+        
+        self.gui.plot_widget_component.plot(sig_component.resultant_sig, pen = "r", name = sig_component.name)
+        
         pass
 
     def Delete_Signal_From_Result(self):
@@ -131,11 +196,13 @@ class Signal_Composer(QtWidgets.QMainWindow):
     @classmethod
     def export_resultant_as_csv(cls, file_name="signal_data"):
         pass
-
-        
-    @classmethod
-    def return_zero_at_emptyString(cls, string):
-        pass                           
+    
+    
+    def Return_Zero_At_Empty_String(string):
+        if string == "":
+            return "0"
+        else:
+            return string                           
  
     def Renew_Intr(self, Freq):
         pass

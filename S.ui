@@ -24,7 +24,7 @@
        <enum>QTabWidget::Rounded</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab_viewer">
        <attribute name="title">
@@ -144,6 +144,12 @@
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
+              <property name="minimumSize">
+               <size>
+                <width>200</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="maximumSize">
                <size>
                 <width>200</width>
@@ -231,7 +237,7 @@
           <property name="orientation">
            <enum>Qt::Vertical</enum>
           </property>
-          <widget class="QWidget" name="">
+          <widget class="QWidget" name="layoutWidget">
            <layout class="QVBoxLayout" name="verticalLayout_3">
             <item>
              <widget class="QLabel" name="label_main_signal">
@@ -268,7 +274,7 @@
             </item>
            </layout>
           </widget>
-          <widget class="QWidget" name="">
+          <widget class="QWidget" name="layoutWidget">
            <layout class="QVBoxLayout" name="verticalLayout_4">
             <item>
              <widget class="QLabel" name="label_constructed_signal">
@@ -305,7 +311,7 @@
             </item>
            </layout>
           </widget>
-          <widget class="QWidget" name="">
+          <widget class="QWidget" name="layoutWidget">
            <layout class="QVBoxLayout" name="verticalLayout_5">
             <item>
              <widget class="QLabel" name="label_const_err">
@@ -462,7 +468,7 @@
                </widget>
               </item>
               <item row="0" column="1">
-               <widget class="QLineEdit" name="lineEdit_name"/>
+               <widget class="QLineEdit" name="field_name"/>
               </item>
               <item row="1" column="0">
                <widget class="QLabel" name="label_amp">
@@ -472,7 +478,7 @@
                </widget>
               </item>
               <item row="1" column="1">
-               <widget class="QLineEdit" name="lineEdit_amplitude"/>
+               <widget class="QLineEdit" name="field_amplitude"/>
               </item>
               <item row="2" column="0">
                <widget class="QLabel" name="label_freq">
@@ -482,7 +488,7 @@
                </widget>
               </item>
               <item row="2" column="1">
-               <widget class="QLineEdit" name="lineEdit_frequency"/>
+               <widget class="QLineEdit" name="field_frequency"/>
               </item>
               <item row="3" column="0">
                <widget class="QLabel" name="label_phase">
@@ -492,7 +498,7 @@
                </widget>
               </item>
               <item row="3" column="1">
-               <widget class="QLineEdit" name="lineEdit_phase"/>
+               <widget class="QLineEdit" name="field_phase"/>
               </item>
              </layout>
             </item>
@@ -593,10 +599,10 @@
   </customwidget>
  </customwidgets>
  <tabstops>
-  <tabstop>lineEdit_name</tabstop>
-  <tabstop>lineEdit_amplitude</tabstop>
-  <tabstop>lineEdit_frequency</tabstop>
-  <tabstop>lineEdit_phase</tabstop>
+  <tabstop>field_name</tabstop>
+  <tabstop>field_amplitude</tabstop>
+  <tabstop>field_frequency</tabstop>
+  <tabstop>field_phase</tabstop>
   <tabstop>btn_add_component</tabstop>
   <tabstop>listWidget</tabstop>
   <tabstop>btn_remove_component</tabstop>
