@@ -453,7 +453,7 @@
              </widget>
             </item>
             <item row="1" column="1">
-             <widget class="QListWidget" name="listWidget"/>
+             <widget class="QListWidget" name="list_sig_components"/>
             </item>
             <item row="1" column="0">
              <layout class="QFormLayout" name="formLayout_3">
@@ -604,7 +604,7 @@
   <tabstop>field_frequency</tabstop>
   <tabstop>field_phase</tabstop>
   <tabstop>btn_add_component</tabstop>
-  <tabstop>listWidget</tabstop>
+  <tabstop>list_sig_components</tabstop>
   <tabstop>btn_remove_component</tabstop>
   <tabstop>btn_compose</tabstop>
   <tabstop>tabWidget</tabstop>

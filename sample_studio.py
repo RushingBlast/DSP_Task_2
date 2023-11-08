@@ -15,13 +15,8 @@ from scipy.fftpack import fft, fftfreq
 import pyqtgraph as pg
 
 
-#TODO - implement the component dict into sig_comp creation
-#TODO - Tweak things in such a way that makes Plot_Sig_Component only plot a signal, no creation
-#TODO - Add Sig_comp plotting dynamically as user is filling the fields
-#TODO - restore functionality to btn_add_component
-#TODO - did I mention implementing the component dict into the functions?
-#TODO - restore fucntionality to the list widget
-#TODO - restore functionality to btn_remove_component
+#TODO - Make auto naming in composer more robust (not urgent AT ALL)
+
     
 
 
@@ -29,7 +24,6 @@ import pyqtgraph as pg
 class SignalGUI(Ui_MainWindow):
     def setupUi(self, MainWindow):
         Ui_MainWindow.setupUi(self, MainWindow)
-        self.tabWidget.setCurrentIndex(0)
         
         
 class class_sinusoidal():
@@ -50,13 +44,13 @@ class class_sinusoidal():
         self.y_axis_values = amplitude * np.sin(2 * math.pi * frequency * self.time_values + phase)
     
     def add_sig_to_result(self, sig_to_add):
-        for point in sig_to_add:
-            self.resultant_sig[1][point] += sig_to_add[1][point]
+        for point in range(len(sig_to_add.y_axis_values)):
+            self.resultant_sig[1][point] += sig_to_add.y_axis_values[point]
         
     
     def subtract_sig_from_result(self, sig_to_subtract):
-        for point in sig_to_subtract:
-            self.resultant_sig[1][point] -= sig_to_subtract[1][point]
+        for point in range(len(sig_to_subtract.y_axis_values)):
+            self.resultant_sig[1][point] -= sig_to_subtract.y_axis_values[point]
 
 
 class Signal_Composer(QtWidgets.QMainWindow):
@@ -65,10 +59,16 @@ class Signal_Composer(QtWidgets.QMainWindow):
         super(Signal_Composer, self).__init__()
         self.gui = SignalGUI()
         self.gui.setupUi(self)
+        self.gui.tabWidget.setCurrentIndex(0)
         self.data = None
         self.time = None
         
-        self.composer_comps = {} # Dict to hold the components of the composed signal
+        self.index_for_nameless = 0 # An index to append to default signal component name in composer
+        self.index_for_duplicate = 0 # An index to append to components with similar names
+        
+        self.composed_result = class_sinusoidal() # Holds an initial dummy signal with no values
+        
+        self.component_dict = {} # Dictionary to hold the components of the composed signal
         
         self.gui.dial_SNR.setMinimum(0)
         self.gui.dial_SNR.setMaximum(50)
@@ -77,48 +77,101 @@ class Signal_Composer(QtWidgets.QMainWindow):
         
 
         ######################################################### SHORTCUTS #########################################################
-        openShortcut = QShortcut(QKeySequence("o"), self)
+        openShortcut = QShortcut(QKeySequence("ctrl+o"), self)
         openShortcut.activated.connect(self.Open_CSV_File)
-        #############################################################################################################################
-# Connections
-        # self.gui.dial_SNR.valueChanged.connect(self.sliderMoved)
+        
+        switchTabsShortcut = QShortcut(QKeySequence("Ctrl + Tab"), self)
+        switchTabsShortcut.activated.connect(self.Switch_Tabs)
+        
+        
+        
+        
+        
+        ###################################################### UI CONNECTIONS #######################################################
+        
         self.gui.dial_SNR.valueChanged.connect(self.Add_Noise)
         
         self.gui.btn_open_signal.clicked.connect(self.Open_CSV_File)
 
-        self.gui.btn_add_component.clicked.connect(self.Plot_Sig_Component)
+        self.gui.btn_add_component.clicked.connect(self.Add_Sig_Component)
 
-        # self.gui.listWidget.currentItemChanged.connect(self.plot_sigComponent)
-        # self.gui.btn_remove_component.clicked.connect(self.delete_sigComponent_from_resultantGraph)
-        # self.gui.btn_compose.clicked.connect(self.plot_resultant_sig_on_mainGraph)
-        # self.gui.tabWidget.currentChanged.connect(self.set_focus_on_tab_change)
+        self.gui.list_sig_components.currentItemChanged.connect(self.Plot_Sig_Component_From_ListWidget)
+        self.gui.btn_remove_component.clicked.connect(self.Remove_Sig_Component)
+        self.gui.btn_compose.clicked.connect(self.Save_Composed_Signal)
+        self.gui.tabWidget.currentChanged.connect(self.Set_Focus_On_Tab_Change)
         
-        # # Composer Fields
-        # self.gui.lineEdit_amplitude.textEdited.connect(self.plot_sig_on_plot_widget_component)
-        # self.gui.lineEdit_frequency.textEdited.connect(self.plot_sig_on_plot_widget_component)
-        # self.gui.lineEdit_phase.textEdited.connect(self.plot_sig_on_plot_widget_component)
+        # Composer Fields
+        self.gui.field_amplitude.textEdited.connect(self.Plot_Field_Contents)
+        self.gui.field_frequency.textEdited.connect(self.Plot_Field_Contents)
+        self.gui.field_phase.textEdited.connect(self.Plot_Field_Contents)
         
         # # Slider:
         # self.gui.horizontalSlider_sample_freq.valueChanged.connect(lambda: self.Renew_Intr(self.gui.horizontalSlider_sample_freq.value()))
 
+
+    ######################################################### Definitions #########################################################
+   
+   
+    #-----------------------------------------------------------------------------------------------------------------------------#
+    #                                                       Misc Methods                                                          #
+    #-----------------------------------------------------------------------------------------------------------------------------#
+
+   
+    
+    def Set_Focus_On_Tab_Change(self):
+        # Sets focus on the name field in composer or 'Open File' button in viewer 
+        if self.gui.tabWidget.currentIndex() == 1:
+            self.gui.field_name.setFocus()
+        else:
+            self.gui.btn_open_signal.setFocus()
+            
+    def Switch_Tabs(self):
+        self.gui.tabWidget.setCurrentIndex(int(not bool(self.gui.tabWidget.currentIndex)))
+    # def Switch_Tabs(self):
+    #     if self.gui.tabWidget.currentIndex == 0:
+    #         self.gui.tabWidget.setCurrentIndex(1)
+    #     elif self.gui.tabWidget.currentIndex == 1:
+    #         self.gui.tabWidget.setCurrentIndex(0)
+            
+            
+    
+    #-----------------------------------------------------------------------------------------------------------------------------#
+    #                                                       Viewer Methods                                                        #
+    #-----------------------------------------------------------------------------------------------------------------------------#
+    
+    
     def Slider_Changed(self):
         pass
     
 
-    def Tab_Focus_Change(self):
-        pass
+        
 
     def Open_CSV_File(self):
+        # try:
+        # Create file dialog
         options = QFileDialog.Options()
         options |= QFileDialog.ReadOnly
+        
+        # Path of selected file
         path, _ = QFileDialog.getOpenFileName( self, "Open Data File", "", "CSV Files (*.csv);;DAT Files (*.dat)", options=options)
+        
+        # Set signal name to file name
         Signal_Name = path.split('/')[-1].split(".")[0]
+        
+        #load the data from csv
         data = np.genfromtxt(path, delimiter=',')
+        
+        # take time values from first column
         time = list(data[1:, 0])
+        # take y values from second column
         y_axis = list(data[1:, 1])
+        
         self.data = y_axis[0:1000]
         self.time = time[0:1000]
-        self.plotOnMain(time[0:1000], y_axis[0:1000], Signal_Name)
+        # Plot time and y values on main plot
+        self.Plot_On_Main(time[0:1000], y_axis[0:1000])
+        # except:
+        #     return
 
     def Plot_Signal(self):
         pass
@@ -161,6 +214,15 @@ class Signal_Composer(QtWidgets.QMainWindow):
         
         # Plot the noisy signal on the main signal plot_widget in red
         self.gui.plot_widget_main_signal.plot(self.time, noise_signal, pen="r")
+
+
+    # Plots a given signal on the main plot (plot_widget_main_signal)
+    def Plot_On_Main(self, Time, Amplitude):
+        self.gui.plot_widget_main_signal.clear()        
+        self.gui.plot_widget_main_signal.plot(Time, Amplitude, pen="r")
+        sample_points = np.arange(0, 1, 1 / 1000)
+        scatter = pg.ScatterPlotItem(pos=np.column_stack((sample_points, self.data)), size=2, pen='w')
+        self.gui.plot_widget_main_signal.addItem(scatter)
         
     def Clear_Sig_Information(self):
         pass
@@ -168,56 +230,140 @@ class Signal_Composer(QtWidgets.QMainWindow):
     def Plot_Result_Signal(self):
         pass
 
+
+
+
+    #-----------------------------------------------------------------------------------------------------------------------------#
+    #                                                       Composer Methods                                                        #
+    #-----------------------------------------------------------------------------------------------------------------------------#
+    
+    
+    # Adds signal component to plot_widget_composed_signal
+    def Add_Sig_Component(self):
+        
+        
+        # Create signal from fields
+        sig_comp = self.Create_Sig_From_Fields()
+        
+        # Add item to list_sig_component and append to component_dict
+        self.gui.list_sig_components.addItem(sig_comp.name)
+        self.component_dict[sig_comp.name] = sig_comp
+        
+        # Add new component to composed signal
+        self.composed_result.add_sig_to_result(sig_comp)
+        
+        # Plot new composed signal
+        self.gui.plot_widget_composed.clear()
+        self.gui.plot_widget_composed.plot(self.composed_result.resultant_sig[0], self.composed_result.resultant_sig[1], pen = 'r')
+        print(sig_comp.name)
+        
+        # Prepare for new component input
+        self.gui.plot_widget_component.clear()
+        self.Clear_Input_Fields()
+        
+        self.gui.field_name.setFocus()
+        
+    # Adds signal component to plot_widget_composed_signal
+    def Remove_Sig_Component(self):
+        
+    
+        self.gui.plot_widget_component.clear()
+        
+        # Remove item from component_dict
+        comp_to_be_removed = self.component_dict.pop(self.gui.list_sig_components.currentItem().text())
+        
+        # Remove item from list_sig_component
+        self.gui.list_sig_components.takeItem(self.gui.list_sig_components.currentRow())
+        
+        if len(self.component_dict) == 0:
+            self.gui.plot_widget_composed.clear()
+            return
+        
+        
+        # Remove selected component from composed signal
+        self.composed_result.subtract_sig_from_result(comp_to_be_removed)
+        
+        # Plot new composed signal
+        self.gui.plot_widget_composed.clear()
+        self.gui.plot_widget_composed.plot(self.composed_result.resultant_sig[0], self.composed_result.resultant_sig[1], pen = 'r')
+        
+        self.gui.field_name.setFocus()
+
+        
+    
     
     # Returns a class_sinusoidal object with the field inputs 
     def Create_Sig_From_Fields(self):
         
-        name = self.Return_Zero_At_Empty_String(self.gui.field_name.text())
-        freq = self.Return_Zero_At_Empty_String(self.gui.field_frequency.text())
-        amp = self.Return_Zero_At_Empty_String(self.gui.field_amplitude.text())
-        phase = self.Return_Zero_At_Empty_String(self.gui.field_phase.text())
+        name = self.gui.field_name.text()
+        freq = self.Return_Zero_At_Empty_String(self.gui.field_frequency.text(), 1)
+        amp = self.Return_Zero_At_Empty_String(self.gui.field_amplitude.text(), 1)
+        phase = self.Return_Zero_At_Empty_String(self.gui.field_phase.text(), 0)
+        
+        if name == "":
+            name = f"sig_{self.index_for_nameless}"
+            self.index_for_nameless +=1
+        
+        elif name in self.component_dict.keys():
+            name = f"{name}_{self.index_for_duplicate}"
+            self.index_for_nameless +=1
+            
+            
                 
         new_sig = class_sinusoidal(name, float(freq), float(amp), float(phase))
         return new_sig
         
-    # Plots a signal ocmponent on plot_widget_component
-    def Plot_Sig_Component(self):
+    # Plots the selected signal component from list_sig_components on plot_widget_component
+    def Plot_Sig_Component_From_ListWidget(self):
         self.gui.plot_widget_component.clear()
         
-        sig_component = self.Create_Sig_From_Fields()
-        
-        self.gui.plot_widget_component.plot(sig_component.resultant_sig, pen = "r", name = sig_component.name)
-        
-        pass
-
-    def Delete_Signal_From_Result(self):
-        pass
-
-
-    def Save_Result(self):
-        pass
-
-
-    @classmethod
-    def export_resultant_as_csv(cls, file_name="signal_data"):
-        pass
+        sig_component = self.component_dict[self.gui.list_sig_components.currentItem().text()]
+        self.gui.plot_widget_component.plot(sig_component.time_values, sig_component.y_axis_values, pen = "r")
     
     
-    def Return_Zero_At_Empty_String(string):
+    # Plot field contents on plot_widget_component
+    def Plot_Field_Contents(self):
+        self.gui.plot_widget_component.clear()
+        temp_sig = self.Create_Sig_From_Fields()
+        self.gui.plot_widget_component.plot(temp_sig.time_values, temp_sig.y_axis_values, pen = "r")
+    
+    # Clear Input Fields
+    def Clear_Input_Fields(self):
+        self.gui.field_name.clear()
+        self.gui.field_amplitude.clear()
+        self.gui.field_frequency.clear()
+        self.gui.field_phase.clear()
+
+    # Saves composed signal and opens it in the viewer
+    def Save_Composed_Signal(self):
+        
+        self.Export_Composed_Signal_As_CSV()
+        
+        # Plot composed signal on plot_widget_main_signal
+        self.Plot_On_Main(self.composed_result.resultant_sig[0], self.composed_result.resultant_sig[1] )
+        
+
+        # Reset everything for next composition
+        self.gui.plot_widget_composed.clear()
+        self.gui.list_sig_components.clear()    
+        self.composed_result = class_sinusoidal()
+        self.component_dict = {}
+        
+    # Exports the signal as a CSV file
+    def Export_Composed_Signal_As_CSV(self,f_sample = 0, file_name="composed_signal_data"):
+        # self.composed_result.resultant_sig.append([f_sample])
+        df = pd.DataFrame(self.composed_result.resultant_sig).transpose()
+        # df.columns = ['Time', 'Amplitude', 'F_Sampling']
+        df.columns = ['Time', 'Amplitude', ]
+        df.to_csv(file_name + '.csv', index=False)
+        
+    
+    
+    def Return_Zero_At_Empty_String(self, string, value):
         if string == "":
-            return "0"
+            return f"{value}"
         else:
             return string                           
- 
-    def Renew_Intr(self, Freq):
-        pass
-
-    def plotOnMain(self, Time, Amplitude, Name):
-        self.gui.plot_widget_main_signal.clear()        
-        self.gui.plot_widget_main_signal.plot(Time, Amplitude, pen="r")
-        sample_points = np.arange(0, 1, 1 / 1000)
-        scatter = pg.ScatterPlotItem(pos=np.column_stack((sample_points, self.data)), size=2, pen='w')
-        self.gui.plot_widget_main_signal.addItem(scatter)
 
 
 
