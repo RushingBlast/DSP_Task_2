@@ -1,5 +1,5 @@
 from cProfile import label
-
+import sys
 from matplotlib.pyplot import xlabel
 from gui import Ui_MainWindow
 import os
@@ -8,7 +8,8 @@ import math
 from scipy.fftpack import fft, fftfreq
 import pandas as pd
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QApplication, QFileDialog
+from PyQt5.QtWidgets import QApplication, QFileDialog, QShortcut
+from PyQt5.QtGui import QKeySequence
 import numpy as np
 from scipy.fftpack import fft, fftfreq
 import pyqtgraph as pg
@@ -74,7 +75,11 @@ class Signal_Composer(QtWidgets.QMainWindow):
         self.gui.dial_SNR.setValue(50)
         self.gui.lbl_snr_level.setText(f"SNR Level: (50dB)")
         
-        
+
+        ######################################################### SHORTCUTS #########################################################
+        openShortcut = QShortcut(QKeySequence("o"), self)
+        openShortcut.activated.connect(self.Open_CSV_File)
+        #############################################################################################################################
 # Connections
         # self.gui.dial_SNR.valueChanged.connect(self.sliderMoved)
         self.gui.dial_SNR.valueChanged.connect(self.Add_Noise)
@@ -111,8 +116,8 @@ class Signal_Composer(QtWidgets.QMainWindow):
         data = np.genfromtxt(path, delimiter=',')
         time = list(data[1:, 0])
         y_axis = list(data[1:, 1])
-        self.data = y_axis
-        self.time = time
+        self.data = y_axis[0:1000]
+        self.time = time[0:1000]
         self.plotOnMain(time[0:1000], y_axis[0:1000], Signal_Name)
 
     def Plot_Signal(self):
@@ -210,9 +215,13 @@ class Signal_Composer(QtWidgets.QMainWindow):
     def plotOnMain(self, Time, Amplitude, Name):
         self.gui.plot_widget_main_signal.clear()        
         self.gui.plot_widget_main_signal.plot(Time, Amplitude, pen="r")
+        sample_points = np.arange(0, 1, 1 / 1000)
+        scatter = pg.ScatterPlotItem(pos=np.column_stack((sample_points, self.data)), size=2, pen='w')
+        self.gui.plot_widget_main_signal.addItem(scatter)
 
 
-import sys
+
+
 
 
 def window():
