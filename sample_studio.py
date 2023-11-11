@@ -8,12 +8,14 @@ import math
 from scipy.fftpack import fft, fftfreq
 import pandas as pd
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QApplication, QFileDialog, QShortcut
+from PyQt5.QtWidgets import QApplication, QFileDialog, QShortcut, QMainWindow
 from PyQt5.QtGui import QKeySequence
 import numpy as np
 from scipy.fftpack import fft, fftfreq
 import pyqtgraph as pg
 from scipy.interpolate import interp1d
+import wfdb
+
 
 
 #TODO - Make auto naming in composer more robust (not urgent AT ALL)
@@ -153,35 +155,49 @@ class Signal_Composer(QtWidgets.QMainWindow):
     
 
         
-
     def Open_CSV_File(self):
-        # try:
-        # Create file dialog
-        options = QFileDialog.Options()
-        options |= QFileDialog.ReadOnly
-        
-        # Path of selected file
-        path, _ = QFileDialog.getOpenFileName( self, "Open Data File", "", "CSV Files (*.csv);;DAT Files (*.dat)", options=options)
-        
-        # Set signal name to file name
-        Signal_Name = path.split('/')[-1].split(".")[0]
-        
-        #load the data from csv
-        data = np.genfromtxt(path, delimiter=',')
-        
-        # take time values from first column
-        time = list(data[1:, 0])
-        # take y values from second column
-        y_axis = list(data[1:, 1])
-        
-        self.fs = int(data[0, 5])
+        try:
+            # Create file dialog
+            options = QFileDialog.Options()
+            options |= QFileDialog.ReadOnly
 
-        self.data = y_axis[0:1000]
-        self.time = time[0:1000]
-        # Plot time and y values on main plot
-        self.Plot_On_Main(time[0:1000], y_axis[0:1000])
-        # except:
-        #     return
+            # Path of selected file
+            path, _ = QFileDialog.getOpenFileName(self, "Open Data File", "", "CSV Files (*.csv);;DAT Files (*.dat)", options=options)
+
+            if path:
+                # Set signal name to file name
+                Signal_Name = path.split('/')[-1].split(".")[0]
+
+                if path.endswith('.csv'):
+                    # Load CSV file using pandas
+                    data = pd.read_csv(path)
+                    time = data.iloc[:, 0].values
+                    y_axis = data.iloc[:, 1].values
+                    self.fs = int(data.iloc[0, 5])
+
+                elif path.endswith('.dat'):
+                    # Load DAT file using wfdb
+                    record = wfdb.rdrecord(path[:-4], channels=[0])
+                    time = np.linspace(0, len(record.p_signal) / record.fs, len(record.p_signal))
+                    y_axis = record.p_signal.flatten()
+                    self.fs = record.fs
+
+                else:
+                    print("Unsupported file format.")
+                    return
+
+                # Use the first 1000 samples for plotting (adjust as needed)
+                self.data = y_axis[:1000]
+                self.time = time[:1000]
+
+                # Plot time and y values on the main plot
+                self.Plot_On_Main(self.time, self.data)
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return
+        
+
 
     def Plot_Signal(self):
         pass
@@ -260,6 +276,36 @@ class Signal_Composer(QtWidgets.QMainWindow):
     def Plot_Result_Signal(self):
         pass
 
+    def sampling_points_plot(self):
+        self.gui.plot_widget_main_signal.clear()
+
+        Time_Values = []
+        Samples = []
+        fs = self.gui.horizontalSlider_sample_freq.value()
+
+        for index in range(0, len(self.time), int(len(self.time)/fs)):
+            Samples.append(self.data[index])
+            Time_Values.append(self.time[index])
+
+        # Plot the original signal
+        self.gui.plot_widget_main_signal.plot(self.time, self.data, pen="r")
+
+        # Plot the sampled points
+        self.gui.plot_widget_main_signal.plot(Time_Values, Samples, pen=None, symbol='o', symbolSize=5)
+
+        # Interpolate sampled points with cubic interpolation
+        interp_func = interp1d(Time_Values, Samples, kind='cubic', fill_value='extrapolate')
+        interpolated_values = interp_func(self.time)
+
+        # Plot the interpolation without points
+        self.gui.plot_widget_restored_signal.clear()
+        self.gui.plot_widget_restored_signal.plot(self.time, interpolated_values, pen="b")
+
+        # Calculate the difference and plot it
+        difference = np.subtract(self.data, interpolated_values)
+
+        self.gui.plot_widget_difference.clear()
+        self.gui.plot_widget_difference.plot(self.time, difference, pen="g")
 
 
 
