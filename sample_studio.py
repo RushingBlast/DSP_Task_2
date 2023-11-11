@@ -82,10 +82,15 @@ class Signal_Composer(QtWidgets.QMainWindow):
         self.gui.horizontalSlider_sample_freq.setEnabled(False)
         
 
+        self.gui.plot_widget_restored_signal.setXLink(self.gui.plot_widget_main_signal)
+        self.gui.plot_widget_difference.setXLink(self.gui.plot_widget_main_signal)
+        self.gui.plot_widget_restored_signal.setYLink(self.gui.plot_widget_main_signal)
+        self.gui.plot_widget_difference.setYLink(self.gui.plot_widget_main_signal)
+
 
         ######################################################### SHORTCUTS #########################################################
         openShortcut = QShortcut(QKeySequence("ctrl+o"), self)
-        openShortcut.activated.connect(self.Open_CSV_File)
+        openShortcut.activated.connect(self.Open_File)
         
         switchTabsShortcut = QShortcut(QKeySequence("Ctrl + Tab"), self)
         switchTabsShortcut.activated.connect(self.Switch_Tabs)
@@ -100,7 +105,7 @@ class Signal_Composer(QtWidgets.QMainWindow):
 
         self.gui.dial_SNR.valueChanged.connect(self.Add_Noise)
         
-        self.gui.btn_open_signal.clicked.connect(self.Open_CSV_File)
+        self.gui.btn_open_signal.clicked.connect(self.Open_File)
 
         self.gui.btn_add_component.clicked.connect(self.Add_Sig_Component)
 
@@ -155,7 +160,7 @@ class Signal_Composer(QtWidgets.QMainWindow):
     
 
         
-    def Open_CSV_File(self):
+    def Open_File(self):
         try:
             # Create file dialog
             options = QFileDialog.Options()
@@ -276,6 +281,7 @@ class Signal_Composer(QtWidgets.QMainWindow):
     def Plot_Result_Signal(self):
         pass
 
+
     def sampling_points_plot(self):
         self.gui.plot_widget_main_signal.clear()
 
@@ -288,25 +294,27 @@ class Signal_Composer(QtWidgets.QMainWindow):
             Time_Values.append(self.time[index])
 
         # Plot the original signal
-        self.gui.plot_widget_main_signal.plot(self.time, self.data, pen="r")
+        self.gui.plot_widget_main_signal.plot(self.time, self.data, pen="r", name="Original Signal")
 
         # Plot the sampled points
-        self.gui.plot_widget_main_signal.plot(Time_Values, Samples, pen=None, symbol='o', symbolSize=5)
+        self.gui.plot_widget_main_signal.plot(Time_Values, Samples, pen=None, symbol='o', symbolSize=5, name="Sampled Points")
 
-        # Interpolate sampled points with cubic interpolation
-        interp_func = interp1d(Time_Values, Samples, kind='cubic', fill_value='extrapolate')
+        # Interpolate sampled points with linear interpolation
+        interp_func = interp1d(Time_Values, Samples, kind='linear')
         interpolated_values = interp_func(self.time)
 
-        # Plot the interpolation without points
-        self.gui.plot_widget_restored_signal.clear()
-        self.gui.plot_widget_restored_signal.plot(self.time, interpolated_values, pen="b")
+        # Plot the interpolation
+        self.gui.plot_widget_main_signal.plot(self.time, interpolated_values, pen="b", name="Interpolated Signal")
 
         # Calculate the difference and plot it
         difference = np.subtract(self.data, interpolated_values)
 
         self.gui.plot_widget_difference.clear()
-        self.gui.plot_widget_difference.plot(self.time, difference, pen="g")
+        self.gui.plot_widget_difference.plot(self.time, difference, pen="g", name="Difference")
 
+        # Optionally, plot the restored signal without points
+        self.gui.plot_widget_restored_signal.clear()
+        self.gui.plot_widget_restored_signal.plot(self.time, interpolated_values, pen="b", name="Restored Signal")
 
 
     #-----------------------------------------------------------------------------------------------------------------------------#
