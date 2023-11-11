@@ -13,6 +13,7 @@ from PyQt5.QtGui import QKeySequence
 import numpy as np
 from scipy.fftpack import fft, fftfreq
 import pyqtgraph as pg
+from scipy.interpolate import interp1d
 
 
 #TODO - Make auto naming in composer more robust (not urgent AT ALL)
@@ -62,7 +63,8 @@ class Signal_Composer(QtWidgets.QMainWindow):
         self.gui.tabWidget.setCurrentIndex(0)
         self.data = None
         self.time = None
-        
+        self.fs = None
+
         self.index_for_nameless = 0 # An index to append to default signal component name in composer
         self.index_for_duplicate = 0 # An index to append to components with similar names
         
@@ -75,6 +77,9 @@ class Signal_Composer(QtWidgets.QMainWindow):
         self.gui.dial_SNR.setValue(50)
         self.gui.lbl_snr_level.setText(f"SNR Level: (50dB)")
         
+        self.gui.horizontalSlider_sample_freq.setEnabled(False)
+        
+
 
         ######################################################### SHORTCUTS #########################################################
         openShortcut = QShortcut(QKeySequence("ctrl+o"), self)
@@ -88,7 +93,9 @@ class Signal_Composer(QtWidgets.QMainWindow):
         
         
         ###################################################### UI CONNECTIONS #######################################################
-        
+        self.gui.horizontalSlider_sample_freq.valueChanged.connect(self.sampling_points_plot)  # Connect the valueChanged signal to a function
+
+
         self.gui.dial_SNR.valueChanged.connect(self.Add_Noise)
         
         self.gui.btn_open_signal.clicked.connect(self.Open_CSV_File)
@@ -141,6 +148,7 @@ class Signal_Composer(QtWidgets.QMainWindow):
     
     
     def Slider_Changed(self):
+
         pass
     
 
@@ -166,6 +174,8 @@ class Signal_Composer(QtWidgets.QMainWindow):
         # take y values from second column
         y_axis = list(data[1:, 1])
         
+        self.fs = int(data[0, 5])
+
         self.data = y_axis[0:1000]
         self.time = time[0:1000]
         # Plot time and y values on main plot
@@ -220,10 +230,30 @@ class Signal_Composer(QtWidgets.QMainWindow):
     def Plot_On_Main(self, Time, Amplitude):
         self.gui.plot_widget_main_signal.clear()        
         self.gui.plot_widget_main_signal.plot(Time, Amplitude, pen="r")
-        sample_points = np.arange(0, 1, 1 / 1000)
-        scatter = pg.ScatterPlotItem(pos=np.column_stack((sample_points, self.data)), size=2, pen='w')
-        self.gui.plot_widget_main_signal.addItem(scatter)
         
+        # freq_slider_enabled and limits
+        self.gui.horizontalSlider_sample_freq.setEnabled(True)
+        self.gui.horizontalSlider_sample_freq.setMinimum(1)
+        self.gui.horizontalSlider_sample_freq.setMaximum(self.fs)
+        self.gui.horizontalSlider_sample_freq.setValue(1)
+
+
+        
+    def sampling_points_plot(self):
+        self.gui.plot_widget_main_signal.clear()
+        
+        Time_Values = []
+        Samples = []
+        fs = self.gui.horizontalSlider_sample_freq.value()
+
+        for index in range(0, len(self.time), int(len(self.time)/fs)):
+            Samples.append(self.data[index])
+            Time_Values.append(self.time[index])
+
+        self.gui.plot_widget_main_signal.plot(self.time, self.data, pen="r")
+        self.gui.plot_widget_main_signal.plot(Time_Values, Samples, pen=None, symbol='o', symbolSize=5)
+    
+
     def Clear_Sig_Information(self):
         pass
     
