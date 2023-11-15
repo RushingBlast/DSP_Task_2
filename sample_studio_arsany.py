@@ -173,6 +173,13 @@ class Signal_Composer(QtWidgets.QMainWindow):
         # Set signal name to file name
         Signal_Name = path.split('/')[-1].split(".")[0]
         
+        self.data = None
+        self.time = None
+        self.fs = None
+        self.components_freq = []
+        self.noisy_signal = None
+
+
         #load the data from csv
         data = np.genfromtxt(path, delimiter=',')
         
@@ -257,8 +264,8 @@ class Signal_Composer(QtWidgets.QMainWindow):
             # Plot the sampled points
             self.gui.plot_widget_main_signal.plot(self.Time_Values, self.Samples, pen=None, symbol='o', symbolSize=5, name="Sampled Points")
             
-            # if self.Samples is not []:
-            #     self.interploation()
+            if self.Samples is not []:
+                self.interploation()
 
         else:
             self.Samples = []
@@ -271,49 +278,32 @@ class Signal_Composer(QtWidgets.QMainWindow):
             # Plot the sampled points
             self.gui.plot_widget_main_signal.plot(self.Time_Values, self.Samples, pen=None, symbol='o', symbolSize=5, name="Sampled Points")
             
-            # if self.Samples is not []:
-            #     self.interploation()
-
-        # # Interpolate sampled points with linear interpolation
-        # interp_func = interp1d(Time_Values, Samples, kind='linear')
-        # interpolated_values = interp_func(self.time)
-
-        # # Plot the interpolation
-        # # self.gui.plot_widget_main_signal.plot(self.time, interpolated_values, pen="b", name="Interpolated Signal")
-
-        # # Calculate the difference and plot it
-        # difference = np.subtract(self.data, interpolated_values)
-
-        # self.gui.plot_widget_difference.clear()
-        # self.gui.plot_widget_difference.plot(self.time, difference, pen="g", name="Difference")
-
-        # # Optionally, plot the restored signal without points
-        # self.gui.plot_widget_restored_signal.clear()
-        # self.gui.plot_widget_restored_signal.plot(self.time, interpolated_values, pen="y", name="Restored Signal")
+            if self.Samples is not []:
+                self.interploation()
 
 
-    # def interploation(self):
-    #     # # Generate 1000 points centered at 0.5 seconds
-    #     # x = np.linspace(0, 10, 1000)
-    #     # # Calculate sinc function values
-    #     # y = x**2 
 
-    #     # interploated = []
-    #     # for i in range(0,len(self.Samples)):
-    #     #     a = self.Samples[i] * y
-    #     #     interploated.append(a)
-    #     # result_sum = []
-    #     # # Using zip and sum
-    #     # for elements in zip(*interploated):
-    #     #     result_sum.append(sum(elements)) 
-    #     num_points = len(self.Time_Values)  # sample points
-    #     z = 0
-    #     for index in range(0, num_points):  # interpolation with sinc function
-    #         z += self.Samples[index] * np.sinc((np.array(self.Time_Values) - (1/self.fs) * index) / (1/self.fs))
+    def interploation(self):
+ 
+        # Interpolate using sinc function
+        sinc_interpolator = interp1d(self.Time_Values, self.Samples, kind='quadratic', fill_value='extrapolate')
 
-    #     self.gui.plot_widget_restored_signal.clear()
-    #     self.gui.plot_widget_restored_signal.plot(self.time, z, pen="w")
-    #     # self.gui.plot_widget_restored_signal.setYRange(-1,1)
+        # Create a finer time grid for interpolation
+        t_interpolate = np.linspace(0, 1, int(1000 * 1), endpoint=False)
+
+        # Interpolate the signal using sinc interpolation
+        interpolated_signal = sinc_interpolator(t_interpolate)
+
+        self.gui.plot_widget_restored_signal.clear()
+        self.gui.plot_widget_restored_signal.plot(t_interpolate, interpolated_signal, pen="w")
+
+        # Calculate the difference and plot it
+        difference = np.subtract(self.data, interpolated_signal)
+
+        self.gui.plot_widget_difference.clear()
+        self.gui.plot_widget_difference.plot(self.time, difference, pen="g", name="Difference")
+
+
 
     def Clear_Sig_Information(self):
         pass
