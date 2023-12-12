@@ -12,33 +12,28 @@ import csv
 from scipy.interpolate import interp1d
 
 
-#TODO - Make auto naming in composer more robust (not urgent AT ALL)
-
-    
-
-
 
 class SignalGUI(Ui_MainWindow):
     def setupUi(self, MainWindow):
         Ui_MainWindow.setupUi(self, MainWindow)
         
         
-class class_sinusoidal():
-    
-    # Initialize the sinusoidal with a list of 1000 time values and 1000 zeroes
-    resultant_sig = [np.linspace(0, 2, 1000, endpoint=False), [0] * 1000]
-    
+class class_sinusoidal():   
     def __init__(self, name="", frequency = 1.0, amplitude = 1.0, phase = 0.0):
         
         self.name = name
         self.frequency = frequency
         self.amplitude = amplitude
         self.phase = phase
+
+        self.resultant_sig = [np.linspace(0, 20, 1000, endpoint=False), [0] * 1000]
         
-        self.time_values = np.linspace(0, 2, 1000, endpoint= False)
+        self.time_values = np.linspace(0, 20, 1000, endpoint= False)
         
         # Creates a sin function with Sin(2 * pi * F * T + phase) and multiply it with the amplitude
         self.y_axis_values = amplitude * np.sin(2 * math.pi * frequency * self.time_values + phase)
+
+        
     
     def add_sig_to_result(self, sig_to_add):
         for point in range(len(sig_to_add.y_axis_values)):
@@ -51,86 +46,96 @@ class class_sinusoidal():
 
 
     def reset_resultant_sig(self):
-        self.resultant_sig = [np.linspace(0, 2, 1000, endpoint=False), [0] * 1000]
+        self.resultant_sig = [np.linspace(0, 20, 1000, endpoint=False), [0] * 1000]
 
 
 
 
-class Signal_Composer(QtWidgets.QMainWindow):
+class Signal_sampling_and_recovering(QtWidgets.QMainWindow):
     exported_signal_index = "resultant_signal_from_composer"
     def __init__(self):
-        super(Signal_Composer, self).__init__()
+        super(Signal_sampling_and_recovering, self).__init__()
         self.gui = SignalGUI()
         self.gui.setupUi(self)
         self.gui.tabWidget.setCurrentIndex(0)
-        self.data = None
-        self.time = None
-        self.fs = None
-        self.components_freq = []
-        self.noisy_signal = None
 
-        self.Time_Values = []
-        self.Samples = []
+        self.csv_file_path = None
 
-        self.index_for_nameless = 0 # An index to append to default signal component name in composer
-        self.index_for_duplicate = 0 # An index to append to components with similar names
+        self.data = None              # Stores the y_axis values
+        self.time = None              # Stores the x_axis values
+        self.fs = None                # Stores sampling frequency
+  
+        self.components_freq = []     # List to get the max freq in composed signals
+        self.noisy_signal = None      # Stores the noisy signal
+  
+        self.Time_Values = []         # Stores sampled time values
+        self.Samples = []             # Stores sampled values
+
+        self.index_for_nameless = 0   # An index to append to default signal component name in composer
+        self.index_for_duplicate = 0  # An index to append to components with similar names
         
         self.composed_result = class_sinusoidal() # Holds an initial dummy signal with no values
         
-        self.component_dict = {} # Dictionary to hold the components of the composed signal
+        self.component_dict = {}      # Dictionary to hold the components of the composed signal
 
+        # Noise dial min, max level and start value
         self.gui.dial_SNR.setMinimum(0)
         self.gui.dial_SNR.setMaximum(50)
         self.gui.dial_SNR.setValue(50)
-        self.gui.lbl_snr_level.setText(f"SNR Level: (50dB)")
+        self.gui.lbl_snr_level.setText(f"SNR Level:")
         
-        self.gui.horizontalSlider_sample_freq.setEnabled(False)
+        self.gui.horizontalSlider_sample_freq.setEnabled(False)  # Disable the fs slider
         
 
 
-        ######################################################### SHORTCUTS #########################################################
+######################################################### SHORTCUTS #########################################################
+        
+        
         openShortcut = QShortcut(QKeySequence("ctrl+o"), self)
         openShortcut.activated.connect(self.Open_CSV_File)
         
         switchTabsShortcut = QShortcut(QKeySequence("Ctrl + Tab"), self)
         switchTabsShortcut.activated.connect(self.Switch_Tabs)
-        
-        
-        
-        
-        
-        ###################################################### UI CONNECTIONS #######################################################
-        self.gui.horizontalSlider_sample_freq.valueChanged.connect(self.sampling_points_plot)  # Connect the valueChanged signal to a function
-        self.gui.horizontalSlider_sample_freq.valueChanged.connect(self.print)  # Connect the valueChanged signal to a function
 
+        
+###################################################### UI CONNECTIONS #######################################################
+        
+        
+        # Connect the fs slider to sampling_points_plot func.
+        self.gui.horizontalSlider_sample_freq.valueChanged.connect(self.sampling_points_plot)  
+        self.gui.horizontalSlider_sample_freq.valueChanged.connect(self.update_freq_val)  
+        
+        # Connect the fs slider to sampling_points_plot func.
         self.gui.dial_SNR.valueChanged.connect(self.Add_Noise)
         
+        # Composer connections
         self.gui.btn_open_signal.clicked.connect(self.Open_CSV_File)
-
         self.gui.btn_add_component.clicked.connect(self.Add_Sig_Component)
-
         self.gui.list_sig_components.currentItemChanged.connect(self.Plot_Sig_Component_From_ListWidget)
         self.gui.btn_remove_component.clicked.connect(self.Remove_Sig_Component)
         self.gui.btn_compose.clicked.connect(self.Save_Composed_Signal)
         self.gui.tabWidget.currentChanged.connect(self.Set_Focus_On_Tab_Change)
-        
-        # Composer Fields
         self.gui.field_amplitude.textEdited.connect(self.Plot_Field_Contents)
         self.gui.field_frequency.textEdited.connect(self.Plot_Field_Contents)
         self.gui.field_phase.textEdited.connect(self.Plot_Field_Contents)
-        
-        
 
-    ######################################################### Definitions #########################################################
+        self.link_views()
+        
+        
+######################################################### Definitions #########################################################
    
    
     #-----------------------------------------------------------------------------------------------------------------------------#
     #                                                       Misc Methods                                                          #
     #-----------------------------------------------------------------------------------------------------------------------------#
-# slider values
-    def print(self):
-        print(self.gui.horizontalSlider_sample_freq.value())
-    
+    def link_views(self):
+        self.gui.plot_widget_difference.setXLink(self.gui.plot_widget_main_signal)
+        self.gui.plot_widget_difference.setYLink(self.gui.plot_widget_main_signal)
+        # self.gui.plot_widget_restored_signal.setXLink(self.gui.plot_widget_main_signal)
+        # self.gui.plot_widget_restored_signal.setYLink(self.gui.plot_widget_main_signal)
+
+
+
     def Set_Focus_On_Tab_Change(self):
         # Sets focus on the name field in composer or 'Open File' button in viewer 
         if self.gui.tabWidget.currentIndex() == 1:
@@ -141,70 +146,93 @@ class Signal_Composer(QtWidgets.QMainWindow):
     def Switch_Tabs(self):
         self.gui.tabWidget.setCurrentIndex(int(not bool(self.gui.tabWidget.currentIndex)))
             
-            
-    
+                
     #-----------------------------------------------------------------------------------------------------------------------------#
     #                                                       Viewer Methods                                                        #
     #-----------------------------------------------------------------------------------------------------------------------------#
     
-    
-    def Slider_Changed(self):
-
-        pass
-    
-    def components_freq_adding(self):
-        
-        self.components_freq.append(int(self.gui.field_frequency.text()))
-
-    def get_max_freq(self):
-    
-        return max(self.components_freq)
+    def update_freq_val(self):
+        self.gui.label_sampling_frequency.setText("Sampling Frequency: " + str(self.gui.horizontalSlider_sample_freq.value()))
         
 
     def Open_CSV_File(self):
-        # try:
-        # Create file dialog
         options = QFileDialog.Options()
         options |= QFileDialog.ReadOnly
         
         # Path of selected file
         path, _ = QFileDialog.getOpenFileName( self, "Open Data File", "", "CSV Files (*.csv);;DAT Files (*.dat)", options=options)
-        
-        # Set signal name to file name
-        Signal_Name = path.split('/')[-1].split(".")[0]
-        
+
+        # Make all vars = None to add new data
         self.data = None
         self.time = None
         self.fs = None
         self.components_freq = []
         self.noisy_signal = None
 
-
-        #load the data from csv
+        #Load the data from csv
         data = np.genfromtxt(path, delimiter=',')
         
-        # take time values from first column
+        # Take time values from first column
         time = list(data[1:, 0])
 
-        # take y values from second column
-        y_axis = list(data[1:, 1])
+        # Take y values from second column
+        amp = list(data[1:, 1])
         
+        # Take fs value from third column
         self.fs = int(data[1, 2])
 
-        self.data = y_axis[0:1000]
+        # Store the data we will use 
+        self.data = amp[0:1000]
         self.time = time[0:1000]
-        # Plot time and y values on main plot
-        self.Plot_On_Main(self.time, self.data)
 
+        self.gui.plot_widget_difference.clear()
+        self.gui.plot_widget_main_signal.clear()
+        self.gui.plot_widget_restored_signal.clear()
 
-    def Add_Noise(self):
-        self.gui.plot_widget_main_signal.clear()    
+        self.gui.label_original_frequency.setText(f"Max Frequency: {self.fs}")
         
+        # Plot time and amplitude on main plot
+        self.Plot_On_Main(self.time, self.data)
+    
+    # def open_after_save(self):
+    #     data = np.genfromtxt(self.csv_file_path, delimiter=',')
+    #     # Take time values from first column
+    #     time = list(data[1:, 0])
+
+    #     # Take y values from second column
+    #     amp = list(data[1:, 1])
+        
+    #     # Take fs value from third column
+    #     self.fs = int(data[1, 2])
+
+    #     # Store the data we will use 
+    #     self.data = amp[0:1000]
+    #     self.time = time[0:1000]
+
+    #     self.gui.plot_widget_difference.clear()
+    #     self.gui.plot_widget_main_signal.clear()
+    #     self.gui.plot_widget_restored_signal.clear()
+        
+    #     # Plot time and amplitude on main plot
+    #     self.Plot_On_Main(self.time, self.data)
+
+
+    def components_freq_adding(self):
+        # Append frequency values from freq. field in the composer
+        self.components_freq.append(int(self.gui.field_frequency.text()))
+
+
+    def get_max_freq(self):
+        # Get the max freq. from components_freq list
+        return max(self.components_freq)
+
+
+    def Add_Noise(self):       
         # Get the Signal-to-Noise Ratio (SNR) in decibels from the GUI dial
         snr_db = self.gui.dial_SNR.value()
         
         # Set label text to SNR dB value
-        self.gui.lbl_snr_level.setText(f"SNR Level: ({snr_db}dB)")
+        self.gui.lbl_snr_level.setText(f"SNR Level: ({snr_db})")
         
         # Define a function to calculate the power of a list of values
         def power(my_list):
@@ -232,17 +260,17 @@ class Signal_Composer(QtWidgets.QMainWindow):
         self.noisy_signal = self.data + noise
         
         # Plot the noisy signal on the main signal plot_widget in red
-        self.Plot_On_Main(self.time, self.noisy_signal)
+        self.gui.plot_widget_main_signal.plot(self.time, self.noisy_signal, pen="r")
+        self.sampling_points_plot()
 
-    # Plots a given signal on the main plot (plot_widget_main_signal)
-    def Plot_On_Main(self, time, data):
-        self.gui.plot_widget_main_signal.clear()        
-        self.gui.plot_widget_main_signal.plot(time, data, pen="r")
+
+    def Plot_On_Main(self, time, amplitude):
+        self.gui.plot_widget_main_signal.plot(time, amplitude, pen="r")
         
         # freq_slider_enabled and limits
         self.gui.horizontalSlider_sample_freq.setEnabled(True)
         self.gui.horizontalSlider_sample_freq.setMinimum(1)
-        self.gui.horizontalSlider_sample_freq.setMaximum(self.fs)
+        self.gui.horizontalSlider_sample_freq.setMaximum(self.fs * 4)
         self.gui.horizontalSlider_sample_freq.setValue(1)
 
 
@@ -255,62 +283,55 @@ class Signal_Composer(QtWidgets.QMainWindow):
         if self.noisy_signal is None:
             self.Samples = []
             self.Time_Values = []
-            for index in range(0, len(self.time), int(len(self.time)/fs)):
-                self.Samples.append(self.data[index])
-                self.Time_Values.append(self.time[index])
-
+            
+            interpolator = interp1d(self.time, self.data, kind= 'linear', fill_value="extrapolate")
+            self.Time_Values = np.arange(self.time[0], self.time[-1], 1/fs)
+            
+            self.Samples = interpolator(self.Time_Values)
+            
             # Plot the original signal
             self.gui.plot_widget_main_signal.plot(self.time, self.data, pen="r", name="Original Signal")
             # Plot the sampled points
             self.gui.plot_widget_main_signal.plot(self.Time_Values, self.Samples, pen=None, symbol='o', symbolSize=5, name="Sampled Points")
-            
-            if self.Samples is not []:
-                self.interploation()
+        
+            self.interpolation()
 
         else:
             self.Samples = []
             self.Time_Values = []
-            for index in range(0, len(self.time), int(len(self.time)/fs)):
-                self.Samples.append(self.noisy_signal[index])
-                self.Time_Values.append(self.time[index])
+            # Get the sample points
+
+            interpolator = interp1d(self.time, self.noisy_signal, kind= 'linear', fill_value="extrapolate")
+            self.Time_Values = np.arange(self.time[0], self.time[-1], 1/fs)
+            self.Samples = interpolator(self.Time_Values)
+
             # Plot the original signal
             self.gui.plot_widget_main_signal.plot(self.time, self.noisy_signal, pen="r", name="Original Signal")
             # Plot the sampled points
             self.gui.plot_widget_main_signal.plot(self.Time_Values, self.Samples, pen=None, symbol='o', symbolSize=5, name="Sampled Points")
             
-            if self.Samples is not []:
-                self.interploation()
+            self.interpolation()
 
 
 
-    def interploation(self):
- 
-        # Interpolate using sinc function
-        sinc_interpolator = interp1d(self.Time_Values, self.Samples, kind='quadratic', fill_value='extrapolate')
 
-        # Create a finer time grid for interpolation
-        t_interpolate = np.linspace(0, 1, int(1000 * 1), endpoint=False)
-
-        # Interpolate the signal using sinc interpolation
-        interpolated_signal = sinc_interpolator(t_interpolate)
-
+    def interpolation(self):
+        reconstracted_signal = np.zeros_like(self.time)
+        fs = self.gui.horizontalSlider_sample_freq.value()
+        for sample_t, sample_val in zip(self.Time_Values, self.Samples):
+             reconstracted_signal += sample_val * np.sinc((self.time - sample_t) * fs) 
+        
         self.gui.plot_widget_restored_signal.clear()
-        self.gui.plot_widget_restored_signal.plot(t_interpolate, interpolated_signal, pen="w")
+        self.gui.plot_widget_restored_signal.plot(self.time, reconstracted_signal, pen="w")
+
+        difference = np.zeros_like(self.time)
 
         # Calculate the difference and plot it
-        difference = np.subtract(self.data, interpolated_signal)
-
+        difference = self.data - reconstracted_signal
+               
         self.gui.plot_widget_difference.clear()
         self.gui.plot_widget_difference.plot(self.time, difference, pen="g", name="Difference")
-
-
-
-    def Clear_Sig_Information(self):
-        pass
-    
-    def Plot_Result_Signal(self):
-        pass
-
+ 
 
 
 
@@ -321,7 +342,6 @@ class Signal_Composer(QtWidgets.QMainWindow):
     
     # Adds signal component to plot_widget_composed_signal
     def Add_Sig_Component(self):
-        
         self.components_freq_adding()
 
         # Create signal from fields
@@ -348,7 +368,6 @@ class Signal_Composer(QtWidgets.QMainWindow):
     # Adds signal component to plot_widget_composed_signal
     def Remove_Sig_Component(self):
         
-    
         self.gui.plot_widget_component.clear()
         
         # Remove item from component_dict
@@ -431,7 +450,8 @@ class Signal_Composer(QtWidgets.QMainWindow):
 
     # Exports the signal as a CSV file
     def Export_Composed_Signal_As_CSV(self):
-        max_freq = (self.get_max_freq()) * 2
+        max_freq = (self.get_max_freq())
+
         self.composed_result.resultant_sig.append([max_freq])
         df = pd.DataFrame(self.composed_result.resultant_sig).transpose()
         df.columns = ['Time', 'Amplitude', 'F_Sampling']
@@ -442,10 +462,10 @@ class Signal_Composer(QtWidgets.QMainWindow):
         # Find the next available index for the filename
         index = 1
         while True:
-            csv_file_path = base_file_path.format(index)
+            self.csv_file_path = base_file_path.format(index)
             try:
                 # Try to open the file in 'x' mode to check if it exists
-                with open(csv_file_path, 'x', newline=''):
+                with open(self.csv_file_path, 'x', newline=''):
                     # File doesn't exist, break the loop
                     break
             except FileExistsError:
@@ -453,14 +473,15 @@ class Signal_Composer(QtWidgets.QMainWindow):
                 index += 1
 
         # Open the file in 'w' mode, create a CSV writer object
-        with open(csv_file_path, 'w', newline='') as csv_file:
+        with open(self.csv_file_path, 'w', newline='') as csv_file:
             csv_writer = csv.writer(csv_file)
 
             # Write data to the CSV file
             csv_writer.writerows([df.columns])  # Write column headers
             csv_writer.writerows(df.values)     # Write data rows
 
-        print(f'CSV file "{csv_file_path}" created successfully with data in columns.')
+        print(f'CSV file "{self.csv_file_path}" created successfully with data in columns.')
+        # self.open_after_save()
 
 
     def Return_Zero_At_Empty_String(self, string, value):
@@ -476,7 +497,7 @@ class Signal_Composer(QtWidgets.QMainWindow):
 
 def window():
     app = QApplication(sys.argv)
-    win = Signal_Composer()
+    win = Signal_sampling_and_recovering()
 
     win.show()
     sys.exit(app.exec_())
